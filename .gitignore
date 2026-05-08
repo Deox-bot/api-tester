@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+dist/
+.DS_Store
+
+# Local storage data (browser-side, not tracked)
+*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Thumbs
+Thumbs.db
