@@ -147,6 +147,21 @@ src/
     └── ModelListViewer.tsx     # 模型列表查看器
 ```
 
+## 推荐资源
+
+### 🔥 硅基流动 SiliconFlow — 推荐注册
+
+通过以下邀请链接注册**硅基流动（SiliconFlow）**，被邀请者和邀请者均可获得 **免费 API 使用代金券**：
+
+| 推荐方式 | 链接 |
+|:---|:---|
+| 🌐 邀请链接 | [https://cloud.siliconflow.cn/i/vDdG58RW](https://cloud.siliconflow.cn/i/vDdG58RW) |
+| 📱 扫码注册 | <img src="public/siliconflow-qr.png" alt="硅基流动推荐二维码" width="150" /> |
+
+> ⏰ 活动截止时间：**2026 年 12 月 31 日**
+>
+> 硅基流动提供 OpenAI、DeepSeek、Qwen、Llama 等主流大模型的高性价比 API 服务，支持免科学上网访问，是国内使用 AI API 的优质选择。
+
 ## 开发计划
 
 - [ ] 支持自定义测试端点（不仅限于 `/models`）

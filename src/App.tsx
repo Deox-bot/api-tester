@@ -32,6 +32,7 @@ import ApiFormDialog from './components/ApiFormDialog';
 import BatchImportDialog from './components/BatchImportDialog';
 import TestResultPanel from './components/TestResultPanel';
 import ApiListHeader from './components/ApiListHeader';
+import RecommendBanner from './components/RecommendBanner';
 
 function App() {
   // ========== 主题 ==========
@@ -189,6 +190,9 @@ function App() {
           testAllDisabled={batchTesting}
           totalCount={configs.length}
         />
+
+        {/* 硅基流动推荐横幅 */}
+        <RecommendBanner />
 
         {/* CORS 提示 */}
         <Fade in={configs.length > 0}>
