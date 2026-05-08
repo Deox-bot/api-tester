@@ -43,7 +43,7 @@
 
 ```bash
 # 克隆项目
-git clone <your-repo-url>
+git clone https://github.com/Deox-bot/api-tester.git
 cd api-tester
 
 # 安装依赖
