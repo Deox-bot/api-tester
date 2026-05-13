@@ -26,6 +26,7 @@ import {
   NetworkCheck as LatencyIcon,
   Warning as WarningIcon,
   Block as BlockIcon,
+  Info as InfoIcon,
 } from '@mui/icons-material';
 import {
   ApiConfig, TestResult, ApiType, API_TYPE_LABELS,
@@ -39,6 +40,7 @@ interface ApiCardProps {
   onEdit: (config: ApiConfig) => void;
   onDelete: (id: string) => void;
   onTest: (config: ApiConfig) => void;
+  onShowDetail: (config: ApiConfig) => void;
 }
 
 /** 状态图标 */
@@ -74,7 +76,7 @@ function latencyColor(ms: number): string {
   return '#f44336';
 }
 
-const ApiCard: React.FC<ApiCardProps> = ({ config, testResult, onEdit, onDelete, onTest }) => {
+const ApiCard: React.FC<ApiCardProps> = ({ config, testResult, onEdit, onDelete, onTest, onShowDetail }) => {
   const [expanded, setExpanded] = useState(false);
   const [showKey, setShowKey] = useState(false);
 
@@ -98,13 +100,13 @@ const ApiCard: React.FC<ApiCardProps> = ({ config, testResult, onEdit, onDelete,
     : '****';
 
   const hasDetails =
-    testResult?.models?.length ||
-    testResult?.rawResponse ||
-    testResult?.balance ||
-    testResult?.chatTest ||
-    testResult?.latency ||
-    testResult?.rateLimit ||
-    testResult?.responseHeaders;
+    (testResult?.models?.length ?? 0) > 0 ||
+    !!testResult?.rawResponse ||
+    !!testResult?.balance ||
+    !!testResult?.chatTest ||
+    !!testResult?.latency ||
+    !!testResult?.rateLimit ||
+    (!!testResult?.responseHeaders && Object.keys(testResult.responseHeaders).length > 0);
 
   return (
     <Card
@@ -252,7 +254,7 @@ const ApiCard: React.FC<ApiCardProps> = ({ config, testResult, onEdit, onDelete,
             endIcon={expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
             sx={{ mt: 1, p: 0, minWidth: 0, textTransform: 'none', fontSize: '0.75rem' }}
           >
-            {expanded ? '收起详情' : '查看详情'}
+            {expanded ? '收起' : '展开'}
           </Button>
         )}
 
@@ -348,6 +350,17 @@ const ApiCard: React.FC<ApiCardProps> = ({ config, testResult, onEdit, onDelete,
 
       {/* ── 操作按钮 ── */}
       <CardActions sx={{ justifyContent: 'flex-end', px: 2, pb: 1.5, pt: 0 }}>
+        <Tooltip title="查看完整详情（基础信息 + 测试结果 + 响应数据）">
+          <Button
+            size="small"
+            variant="text"
+            startIcon={<InfoIcon />}
+            onClick={() => onShowDetail(config)}
+            sx={{ mr: 'auto', textTransform: 'none' }}
+          >
+            详情
+          </Button>
+        </Tooltip>
         <Tooltip title="全量测试（连通性 + 余额 + 对话 + 延迟）">
           <Button
             size="small"
@@ -375,9 +388,7 @@ const ApiCard: React.FC<ApiCardProps> = ({ config, testResult, onEdit, onDelete,
   );
 };
 
-// ─────────────────────────────────────────────
 // 子组件
-// ─────────────────────────────────────────────
 
 const DetailBlock: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
   <Box>

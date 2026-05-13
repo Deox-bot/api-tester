@@ -31,8 +31,8 @@ import ApiCard from './components/ApiCard';
 import ApiFormDialog from './components/ApiFormDialog';
 import BatchImportDialog from './components/BatchImportDialog';
 import TestResultPanel from './components/TestResultPanel';
+import ApiDetailDialog from './components/ApiDetailDialog';
 import ApiListHeader from './components/ApiListHeader';
-import RecommendBanner from './components/RecommendBanner';
 
 function App() {
   // ========== 主题 ==========
@@ -90,6 +90,19 @@ function App() {
     message: '',
     severity: 'info',
   });
+
+  // ========== API 详情对话框 ==========
+  const [detailConfig, setDetailConfig] = useState<typeof configs[0] | null>(null);
+
+  /** 打开详情对话框 */
+  const handleShowDetail = useCallback((config: typeof configs[0]) => {
+    setDetailConfig(config);
+  }, []);
+
+  /** 关闭详情对话框 */
+  const handleCloseDetail = useCallback(() => {
+    setDetailConfig(null);
+  }, []);
 
   // ========== 搜索过滤 ==========
   const filteredConfigs = configs.filter(config => {
@@ -191,9 +204,6 @@ function App() {
           totalCount={configs.length}
         />
 
-        {/* 硅基流动推荐横幅 */}
-        <RecommendBanner />
-
         {/* CORS 提示 */}
         <Fade in={configs.length > 0}>
           <Alert severity="warning" sx={{ mt: 2, mb: 2 }}>
@@ -227,6 +237,7 @@ function App() {
                   onEdit={handleEdit}
                   onDelete={handleDelete}
                   onTest={handleTest}
+                  onShowDetail={handleShowDetail}
                 />
               </Grid>
             ))}
@@ -291,6 +302,14 @@ function App() {
           open={importOpen}
           onImport={handleImport}
           onClose={() => setImportOpen(false)}
+        />
+
+        {/* API 详情对话框 */}
+        <ApiDetailDialog
+          open={detailConfig !== null}
+          config={detailConfig}
+          testResult={detailConfig ? testResults[detailConfig.id] : undefined}
+          onClose={handleCloseDetail}
         />
 
         {/* Toast 提示 */}

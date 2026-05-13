@@ -99,6 +99,8 @@ export interface ChatTestResult {
   totalTokens?: number;
   /** 错误信息 */
   error?: string;
+  /** 备注信息 */
+  note?: string;
 }
 
 /** 延迟测速结果 */

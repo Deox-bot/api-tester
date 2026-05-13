@@ -10,12 +10,11 @@ import {
 } from '../types';
 import { TEST_TIMEOUT_MS } from '../constants';
 
-// ─────────────────────────────────────────────
 // 主入口
-// ─────────────────────────────────────────────
 
 /**
  * 测试单个 API（全量测试项）
+ * 改进：各阶段独立，一个失败不影响其他，能拿到什么显示什么
  */
 export async function testApiConnectivity(config: ApiConfig): Promise<TestResult> {
   const startTime = Date.now();
@@ -27,26 +26,38 @@ export async function testApiConnectivity(config: ApiConfig): Promise<TestResult
     const connectivity = await testConnectivity(config, base, startTime);
     Object.assign(result, connectivity);
 
-    // 如果连通性失败，分析错误类型后直接返回
+    // 即使连通性失败，也尝试分析错误类型
     if (result.status === 'error') {
       result.keyErrorType = detectKeyError(result.statusCode, result.errorMessage);
-      return result;
+      result.testedAt = Date.now();
+      return result; // 连通性都没法测，直接返回
     }
 
-    // ── 2. 余额查询 ───────────────────────────
-    result.balance = await queryBalance(config, base);
+    // ── 2. 余额查询（独立 try-catch，失败不影响其他）───
+    try {
+      result.balance = await queryBalance(config, base);
+    } catch (e: any) {
+      result.balance = { supported: false, error: e.message };
+    }
 
     // ── 3. 速率限制（从响应头提取） ─────────────
-    // 已在 connectivity 阶段收集到 responseHeaders，这里解析
     if (result.responseHeaders) {
       result.rateLimit = parseRateLimitHeaders(result.responseHeaders);
     }
 
-    // ── 4. 对话可用性测试 ─────────────────────
-    result.chatTest = await testChatAvailability(config, base);
+    // ── 4. 对话可用性测试（独立 try-catch）─────────────
+    try {
+      result.chatTest = await testChatAvailability(config, base);
+    } catch (e: any) {
+      result.chatTest = { available: false, error: e.message };
+    }
 
-    // ── 5. 延迟测速（3 次 ping） ──────────────
-    result.latency = await measureLatency(config, base, 3);
+    // ── 5. 延迟测速（独立 try-catch，3 次 ping）──────────────
+    try {
+      result.latency = await measureLatency(config, base, 3);
+    } catch (e: any) {
+      result.latency = undefined; // 测速失败不显示
+    }
 
     result.status = 'success';
     result.testedAt = Date.now();
@@ -63,9 +74,7 @@ export async function testApiConnectivity(config: ApiConfig): Promise<TestResult
   }
 }
 
-// ─────────────────────────────────────────────
 // 1. 连通性 + 模型列表
-// ─────────────────────────────────────────────
 
 async function testConnectivity(
   config: ApiConfig,
@@ -98,7 +107,7 @@ async function testConnectivity(
     return {
       status: 'error',
       responseTime: Date.now() - startTime,
-      errorMessage: '网络请求失败，可能是 CORS 限制或网络不可用。请确认 API 地址正确，或通过后端代理访问。',
+      errorMessage: `网络请求失败（${fetchError?.message || 'Failed to fetch'}）。如确认 API 地址正确，可能是 CORS 限制，建议通过后端代理访问。`,
       testedAt: Date.now(),
     };
   }
@@ -149,9 +158,7 @@ async function testConnectivity(
   };
 }
 
-// ─────────────────────────────────────────────
 // 2. 余额查询
-// ─────────────────────────────────────────────
 
 async function queryBalance(config: ApiConfig, base: string): Promise<BalanceInfo> {
   try {
@@ -181,23 +188,18 @@ async function queryOpenAIBalance(config: ApiConfig, base: string): Promise<Bala
   const headers = buildHeaders(config);
 
   // 端点优先级列表（不同平台差异较大）
+  // 只保留最常用的 4 个，避免太多无效请求
   const endpoints = [
-    `${base}/dashboard/billing/subscription`,   // OpenAI 官方（已停用）
-    `${base}/v1/dashboard/billing/subscription`, // 带 v1 前缀
-    `${base}/dashboard/billing/usage`,           // OpenAI 用量
+    `${base}/v1/dashboard/billing/subscription`,
     `${base}/v1/dashboard/billing/usage`,
-    `${base}/user/info`,                          // 部分中转站
     `${base}/v1/user/info`,
-    `${base}/account/balance`,                   // 部分平台
     `${base}/v1/account/balance`,
-    `${base}/credit_summary`,                     // 部分平台
-    `${base}/v1/credit_summary`,
   ];
 
   for (const url of endpoints) {
     try {
       const controller = new AbortController();
-      const tid = setTimeout(() => controller.abort(), 8000);
+      const tid = setTimeout(() => controller.abort(), 5000); // 减少到 5 秒
 
       const resp = await fetch(url, {
         method: 'GET',
@@ -302,9 +304,7 @@ function parseBalanceResponse(json: any, url: string): Omit<BalanceInfo, 'suppor
   return null;
 }
 
-// ─────────────────────────────────────────────
 // 3. 速率限制（解析响应头）
-// ─────────────────────────────────────────────
 
 function parseRateLimitHeaders(headers: Record<string, string>): RateLimitInfo | undefined {
   const info: RateLimitInfo = {};
@@ -339,9 +339,7 @@ function parseRateLimitHeaders(headers: Record<string, string>): RateLimitInfo |
   return hasAny ? info : undefined;
 }
 
-// ─────────────────────────────────────────────
 // 4. 对话可用性测试
-// ─────────────────────────────────────────────
 
 async function testChatAvailability(config: ApiConfig, base: string): Promise<ChatTestResult> {
   const start = Date.now();
@@ -377,7 +375,7 @@ async function testOpenAIChat(config: ApiConfig, base: string, start: number): P
       method: 'POST',
       headers: { ...buildHeaders(config) },
       body: JSON.stringify({
-        model,
+        model,  // 使用获取到的第一个模型
         messages: [{ role: 'user', content: 'Hi' }],
         max_tokens: 5,
         stream: false,
@@ -390,6 +388,42 @@ async function testOpenAIChat(config: ApiConfig, base: string, start: number): P
     const text = await resp.text();
     let json: any;
     try { json = JSON.parse(text); } catch { /* not JSON */ }
+
+    // 401/403 通常是模型不存在，换用 gpt-3.5-turbo 重试
+    if (!resp.ok && (resp.status === 401 || resp.status === 403)) {
+      const fallbackModel = 'gpt-3.5-turbo';
+      const retryResp = await fetch(`${base}/chat/completions`, {
+        method: 'POST',
+        headers: { ...buildHeaders(config) },
+        body: JSON.stringify({
+          model: fallbackModel,
+          messages: [{ role: 'user', content: 'Hi' }],
+          max_tokens: 5,
+          stream: false,
+        }),
+        signal: controller.signal as any,
+      });
+
+      if (retryResp.ok) {
+        const retryJson = await retryResp.json().catch(() => ({}));
+        const content = retryJson?.choices?.[0]?.message?.content ?? '';
+        return {
+          available: true,
+          model: fallbackModel,
+          responseTime: Date.now() - start,
+          content: content.trim(),
+          totalTokens: retryJson?.usage?.total_tokens,
+          note: `原模型 "${model}" 不支持，使用默认模型`,
+        };
+      }
+      // 重试也失败，返回原始错误
+      return {
+        available: false,
+        model,
+        responseTime,
+        error: `HTTP ${resp.status}: ${json?.error?.message || text.substring(0, 200)}`,
+      };
+    }
 
     if (!resp.ok) {
       return {
@@ -478,9 +512,7 @@ async function testGoogleChat(config: ApiConfig, base: string, start: number): P
   }
 }
 
-// ─────────────────────────────────────────────
 // 5. 延迟测速
-// ─────────────────────────────────────────────
 
 async function measureLatency(config: ApiConfig, base: string, rounds: number): Promise<LatencyResult> {
   const url = buildModelsUrl(config, base);
@@ -498,8 +530,8 @@ async function measureLatency(config: ApiConfig, base: string, rounds: number): 
     } catch {
       samples.push(8000); // 超时记为 8000ms
     }
-    // 间隔 200ms 避免被限速
-    if (i < rounds - 1) await sleep(200);
+    // 增加间隔到 500ms 避免被限速
+    if (i < rounds - 1) await sleep(500);
   }
 
   const min = Math.min(...samples);
@@ -514,9 +546,7 @@ async function measureLatency(config: ApiConfig, base: string, rounds: number): 
   return { min, max, avg, samples, stability };
 }
 
-// ─────────────────────────────────────────────
 // 6. Key 错误类型识别
-// ─────────────────────────────────────────────
 
 function detectKeyError(statusCode?: number, errorMessage?: string): KeyErrorType {
   const msg = (errorMessage || '').toLowerCase();
@@ -544,9 +574,7 @@ function detectKeyError(statusCode?: number, errorMessage?: string): KeyErrorTyp
   return 'unknown';
 }
 
-// ─────────────────────────────────────────────
 // 工具函数
-// ─────────────────────────────────────────────
 
 /** 选取第一个可用模型 */
 async function pickFirstModel(config: ApiConfig, base: string): Promise<string | null> {
@@ -632,9 +660,7 @@ function extractModels(json: any, _apiType: string): string[] {
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-// ─────────────────────────────────────────────
 // 批量测试
-// ─────────────────────────────────────────────
 
 /**
  * 并行测试多个 API（逐个执行，避免浏览器并发限制）

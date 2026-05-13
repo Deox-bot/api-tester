@@ -24,3 +24,20 @@ yarn-error.log*
 
 # Thumbs
 Thumbs.db
+
+# Electron build output
+release/
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Vite compiled config
+vite.config.js
+vite.config.d.ts
+
+# WorkBuddy
+.workbuddy/
+
+# Misc temp files
+stderr.txt
+ruanjian/
