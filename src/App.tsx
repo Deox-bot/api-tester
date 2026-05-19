@@ -17,9 +17,10 @@ import {
   Fade,
   Paper,
   Snackbar,
-  Alert as MuiAlert,
+
   useMediaQuery,
 } from '@mui/material';
+import MuiAlert from '@mui/material/Alert';
 import {
   Add as AddIcon,
   Upload as ImportIcon,

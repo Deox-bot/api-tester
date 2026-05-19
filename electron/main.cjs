@@ -92,7 +92,9 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.cjs'),
       nodeIntegration: false,
       contextIsolation: true,
-      webSecurity: false,
+      // 安全：保持 webSecurity 启用
+      // 通过 main 进程代理请求来解决 CORS 问题
+      webSecurity: true,
     },
     show: false,
     titleBarStyle: 'default',

@@ -21,6 +21,13 @@ export function useApiTest() {
   const cancelRef = useRef(false);
 
   /**
+   * 取消批量测试
+   */
+  const cancelTest = useCallback(() => {
+    cancelRef.current = true;
+  }, []);
+
+  /**
    * 测试单个 API
    */
   const testSingle = useCallback(async (config: ApiConfig): Promise<TestResult> => {
@@ -68,6 +75,11 @@ export function useApiTest() {
 
     try {
       await testApisBatch(configs, (results, completed, total) => {
+        // 检查是否已取消
+        if (cancelRef.current) {
+          throw new Error('Test cancelled by user');
+        }
+
         // 更新结果映射
         const resultMap: Record<string, TestResult> = {};
         for (const r of results) {
@@ -78,8 +90,12 @@ export function useApiTest() {
         setTestResults(prev => ({ ...prev, ...resultMap }));
         setBatchProgress({ completed, total });
       });
-    } catch (error) {
-      console.error('Batch test error:', error);
+    } catch (error: any) {
+      if (error.message === 'Test cancelled by user') {
+        console.log('Batch test cancelled');
+      } else {
+        console.error('Batch test error:', error);
+      }
     } finally {
       setBatchTesting(false);
     }
@@ -130,6 +146,7 @@ export function useApiTest() {
     batchProgress,
     testSingle,
     testAll,
+    cancelTest,
     clearResult,
     clearAllResults,
     getResult,

@@ -30,9 +30,10 @@ import {
 } from '@mui/icons-material';
 import {
   ApiConfig, TestResult, ApiType, API_TYPE_LABELS,
-  TestStatus, KeyErrorType, BalanceInfo,
+  TestStatus, BalanceInfo,
   ChatTestResult, LatencyResult, RateLimitInfo,
 } from '../types';
+import { latencyColor, stabilityColor, KEY_ERROR_LABELS, preStyle } from '../utils/ui';
 
 interface ApiCardProps {
   config: ApiConfig;
@@ -51,30 +52,8 @@ const STATUS_ICON: Record<TestStatus, React.ReactNode> = {
   error: <ErrorIcon color="error" fontSize="small" />,
 };
 
-/** Key 错误类型文本 */
-const KEY_ERROR_LABELS: Record<KeyErrorType, { label: string; color: 'error' | 'warning' }> = {
-  expired:      { label: 'Key 已过期', color: 'error' },
-  insufficient: { label: '余额不足', color: 'warning' },
-  unauthorized: { label: 'Key 无效/未授权', color: 'error' },
-  rate_limited: { label: '速率限制', color: 'warning' },
-  permission:   { label: '权限不足', color: 'warning' },
-  invalid_key:  { label: 'Key 格式错误', color: 'error' },
-  unknown:      { label: '未知错误', color: 'error' },
-};
 
-/** 稳定性评分颜色 */
-function stabilityColor(score: number): string {
-  if (score >= 80) return '#4caf50';
-  if (score >= 50) return '#ff9800';
-  return '#f44336';
-}
 
-/** 延迟等级颜色 */
-function latencyColor(ms: number): string {
-  if (ms < 500) return '#4caf50';
-  if (ms < 1500) return '#ff9800';
-  return '#f44336';
-}
 
 const ApiCard: React.FC<ApiCardProps> = ({ config, testResult, onEdit, onDelete, onTest, onShowDetail }) => {
   const [expanded, setExpanded] = useState(false);
@@ -399,18 +378,6 @@ const DetailBlock: React.FC<{ title: string; children: React.ReactNode }> = ({ t
   </Box>
 );
 
-const preStyle = {
-  maxHeight: 200,
-  overflow: 'auto',
-  p: 1,
-  bgcolor: 'action.hover',
-  borderRadius: 1,
-  fontSize: '0.72rem',
-  fontFamily: 'monospace',
-  whiteSpace: 'pre-wrap' as const,
-  wordBreak: 'break-all' as const,
-  m: 0,
-};
 
 /** 余额摘要 */
 const BalanceSummary: React.FC<{ balance: BalanceInfo }> = ({ balance }) => {
