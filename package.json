@@ -8,7 +8,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "electron:dev": "set NODE_OPTIONS= && concurrently -k \"npm run dev\" \"wait-on http://localhost:5173 && electron .\"",
+    "electron:dev": "concurrently -k \"npm run dev\" \"wait-on http://localhost:5173 && electron .\"",
     "electron:build": "npm run build && electron-builder",
     "dist": "npm run build && electron-builder --win --x64",
     "dist:portable": "npm run build && electron-builder --win --x64 --publish never"
@@ -35,7 +35,8 @@
     "tailwindcss": "^3.4.1",
     "typescript": "^5.4.2",
     "vite": "^5.1.6",
-    "wait-on": "^8.0.5"
+    "wait-on": "^8.0.5",
+    "cross-env": "^7.0.3"
   },
   "build": {
     "appId": "com.api-tester",
@@ -51,7 +52,9 @@
       "!**/node_modules/**/*"
     ],
     "win": {
-      "target": ["nsis"],
+      "target": [
+        "nsis"
+      ],
       "icon": "public/favicon.svg"
     },
     "nsis": {

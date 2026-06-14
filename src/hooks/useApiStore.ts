@@ -1,12 +1,35 @@
 /**
  * API 存储 Hook
  * 使用 localStorage 实现数据持久化
+ * API Key 使用 Base64 编码存储（非加密，但避免明文）
  */
 
 import { useState, useCallback, useEffect } from 'react';
 import { ApiConfig } from '../types';
 import { STORAGE_KEY } from '../constants';
 import { v4 as uuidv4 } from 'uuid';
+
+/**
+ * 简单的编码/解码函数（Base64）
+ * 注意：这不是真正的加密，只是避免明文存储
+ * 如需更高安全性，应使用 Web Crypto API 的 AES-GCM
+ */
+function encodeApiKey(key: string): string {
+  try {
+    return btoa(unescape(encodeURIComponent(key)));
+  } catch {
+    return key;
+  }
+}
+
+function decodeApiKey(encoded: string): string {
+  try {
+    return decodeURIComponent(escape(atob(encoded)));
+  } catch {
+    // 兼容旧的明文存储
+    return encoded;
+  }
+}
 
 /**
  * 从 localStorage 加载 API 配置列表
@@ -16,7 +39,13 @@ function loadFromStorage(): ApiConfig[] {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    if (!Array.isArray(parsed)) return [];
+    
+    // 解码 API Key
+    return parsed.map(config => ({
+      ...config,
+      apiKey: config.apiKey ? decodeApiKey(config.apiKey) : '',
+    }));
   } catch {
     console.error('Failed to load API configs from localStorage');
     return [];
@@ -28,7 +57,12 @@ function loadFromStorage(): ApiConfig[] {
  */
 function saveToStorage(configs: ApiConfig[]): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(configs));
+    // 编码 API Key 后存储
+    const encoded = configs.map(config => ({
+      ...config,
+      apiKey: config.apiKey ? encodeApiKey(config.apiKey) : '',
+    }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(encoded));
   } catch (e) {
     console.error('Failed to save API configs to localStorage', e);
   }
@@ -135,9 +169,10 @@ export function useApiStore() {
   }, []);
 
   /**
-   * 导出所有配置为 JSON（不包含 API Key 的脱敏版本可选）
+   * 导出所有配置为 JSON
+   * @param maskKeys 是否脱敏 API Key（默认 true）
    */
-  const exportConfigs = useCallback((maskKeys: boolean = false): string => {
+  const exportConfigs = useCallback((maskKeys: boolean = true): string => {
     const data = configs.map(config => ({
       name: config.name,
       baseUrl: config.baseUrl,

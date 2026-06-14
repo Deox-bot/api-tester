@@ -42,7 +42,8 @@ async function testAPI(config) {
         console.log(`   📋 模型列表 (前5个): ${models.join(', ')}`);
         console.log(`   📊 共 ${json.data.length} 个模型`);
       } else if (json.models && Array.isArray(json.models)) {
-        const models = json.data?.slice(0, 5).map(m => m.name?.replace('models/', ''));
+        // 修复：使用 json.models 而不是 json.data
+        const models = json.models.slice(0, 5).map(m => m.name?.replace('models/', ''));
         console.log(`   📋 模型列表 (前5个): ${models.join(', ')}`);
       } else {
         console.log(`   📋 响应格式: ${Object.keys(json).join(', ')}`);

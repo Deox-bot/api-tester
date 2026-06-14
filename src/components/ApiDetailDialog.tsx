@@ -41,8 +41,8 @@ import {
   TestResult,
   API_TYPE_LABELS,
   ApiType,
-  KeyErrorType,
 } from '../types';
+import { latencyColor, stabilityColor, statusCodeColor, KEY_ERROR_LABELS_DETAIL, preStyle } from '../utils/ui';
 
 interface ApiDetailDialogProps {
   open: boolean;
@@ -52,37 +52,9 @@ interface ApiDetailDialogProps {
 }
 
 /** Key 错误类型标签 */
-const KEY_ERROR_LABELS: Record<KeyErrorType, { label: string; color: string; bg: string }> = {
-  expired:      { label: 'Key 已过期',       color: '#f44336', bg: '#ffebee' },
-  insufficient: { label: '余额不足',         color: '#ff9800', bg: '#fff3e0' },
-  unauthorized: { label: 'Key 无效/未授权',  color: '#f44336', bg: '#ffebee' },
-  rate_limited: { label: '速率限制',         color: '#ff9800', bg: '#fff3e0' },
-  permission:   { label: '权限不足',          color: '#ff9800', bg: '#fff3e0' },
-  invalid_key:  { label: 'Key 格式错误',     color: '#f44336', bg: '#ffebee' },
-  unknown:      { label: '未知错误',          color: '#9e9e9e', bg: '#f5f5f5' },
-};
 
-/** 延迟颜色 */
-function latencyColor(ms: number): string {
-  if (ms < 500) return '#4caf50';
-  if (ms < 1500) return '#ff9800';
-  return '#f44336';
-}
 
-/** 稳定性颜色 */
-function stabilityColor(score: number): string {
-  if (score >= 80) return '#4caf50';
-  if (score >= 50) return '#ff9800';
-  return '#f44336';
-}
 
-/** HTTP 状态码颜色 */
-function statusCodeColor(code?: number): string {
-  if (!code) return '#9e9e9e';
-  if (code >= 200 && code < 300) return '#4caf50';
-  if (code >= 400) return '#f44336';
-  return '#ff9800';
-}
 
 const ApiDetailDialog: React.FC<ApiDetailDialogProps> = ({
   open,
@@ -198,7 +170,7 @@ const ApiDetailDialog: React.FC<ApiDetailDialogProps> = ({
                   value={
                     testResult?.keyErrorType && testResult.keyErrorType !== 'unknown'
                       ? (() => {
-                          const err = KEY_ERROR_LABELS[testResult.keyErrorType];
+                          const err = KEY_ERROR_LABELS_DETAIL[testResult.keyErrorType];
                           return (
                             <Chip
                               icon={<WarningIcon sx={{ fontSize: 14 }} />}
@@ -516,18 +488,6 @@ const ApiDetailDialog: React.FC<ApiDetailDialogProps> = ({
 
 // 子组件
 
-const preStyle = {
-  maxHeight: 250,
-  overflow: 'auto',
-  p: 1.5,
-  bgcolor: 'action.hover',
-  borderRadius: 1,
-  fontSize: '0.75rem',
-  fontFamily: 'monospace',
-  whiteSpace: 'pre-wrap' as const,
-  wordBreak: 'break-all' as const,
-  m: 0,
-};
 
 const InfoCard: React.FC<{
   title: string;
